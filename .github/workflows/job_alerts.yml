@@ -3,7 +3,7 @@ name: Daily Job Alerts
 on:
   workflow_dispatch: # Allows you to manually run the job from the Actions tab
   schedule:
-    - cron: '*/5 * * * *'   # Runs every 5 minutes
+    - cron: '30 6 */2 * *'
 
 jobs:
   run-job-search:
