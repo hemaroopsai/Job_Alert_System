@@ -8,7 +8,7 @@ import json
 # --- Secrets (Loaded from Environment Variables) ---
 SERPER_API_KEY = os.environ.get("SERPER_API_KEY")
 TWILIO_SID = os.environ.get("TWILIO_SID")
-TWILIO_AUTH = os.environ.get("TWilio_AUTH")
+TWILIO_AUTH = os.environ.get("TWILIO_AUTH")
 TO_WHATSAPP = os.environ.get("TO_WHATSAPP")
 TWILIO_WHATSAPP = os.environ.get("TWILIO_WHATSAPP", "whatsapp:+14155238886")
 
