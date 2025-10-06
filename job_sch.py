@@ -1,16 +1,13 @@
 import os
 import requests
-import time
-from twilio.rest import Client
 import json
+import time
 
 # ---------------- CONFIG ----------------
 # --- Secrets (Loaded from Environment Variables) ---
 SERPER_API_KEY = os.environ.get("SERPER_API_KEY")
-TWILIO_SID = os.environ.get("TWILIO_SID")
-TWILIO_AUTH = os.environ.get("TWILIO_AUTH")
-TO_WHATSAPP = os.environ.get("TO_WHATSAPP")
-TWILIO_WHATSAPP = os.environ.get("TWILIO_WHATSAPP", "whatsapp:+14155238886")
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 # --- Settings ---
 LOCATION = "Hyderabad, India"
@@ -22,7 +19,7 @@ JOB_SITES = [
     "naukri.com",
     "indeed.com",
     "glassdoor.co.in",
-    "wellfound.com", # Formerly AngelList
+    "wellfound.com",  # Formerly AngelList
     "instahyre.com"
 ]
 # ----------------------------------------
@@ -57,7 +54,6 @@ def fetch_jobs():
     for query in SEARCH_QUERIES:
         full_query = f"{query} in {LOCATION} {site_query}"
         payload = json.dumps({"q": full_query})
-
         try:
             response = requests.post(serper_url, headers=headers, data=payload)
             response.raise_for_status()
@@ -75,45 +71,51 @@ def fetch_jobs():
                 print(f"Found {len(new_jobs_found)} new jobs for query: '{query}'")
                 job_links_text = []
                 new_links_to_save = []
-                
                 for job in new_jobs_found[:JOB_LIMIT_PER_QUERY]:
+                    # Using Markdown for bold text in Telegram
                     job_links_text.append(f"*{job['title']}*\n{job['link']}")
                     new_links_to_save.append(job['link'])
-                    
-                query_header = f"✨ {len(new_links_to_save)} New Jobs for '{query}':\n"
-                full_message_body = query_header + "\n\n".join(job_links_text)
+                
+                header = f"✨ *{len(new_links_to_save)} New Jobs for '{query}'*:\n\n"
+                body = "\n\n".join(job_links_text)
+                full_message = header + body
                 
                 messages_to_process.append({
-                    "message": full_message_body,
+                    "message": full_message,
                     "links_to_save": new_links_to_save
                 })
             else:
                  print(f"No new jobs found for query: '{query}'")
-
         except requests.exceptions.RequestException as e:
             print(f"API Error fetching jobs for '{query}': {e}")
-
+            
     return messages_to_process
 
-def send_whatsapp(client, message_body):
-    """Sends a single WhatsApp message."""
+def send_telegram_message(message_text):
+    """Sends a single message to a Telegram chat."""
+    api_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    
+    payload = {
+        'chat_id': TELEGRAM_CHAT_ID,
+        'text': message_text,
+        'parse_mode': 'Markdown'
+    }
+    
     try:
-        message = client.messages.create(
-            from_=TWILIO_WHATSAPP, body=message_body, to=TO_WHATSAPP)
-        print(f"WhatsApp message sent successfully! SID: {message.sid}")
+        response = requests.post(api_url, json=payload)
+        response.raise_for_status()
+        print("Telegram message sent successfully!")
         return True
-    except Exception as e:
-        print(f"Failed to send WhatsApp message: {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send Telegram message: {e}")
         return False
 
 def main():
     """Main function to run the job task once."""
-    if not all([SERPER_API_KEY, TWILIO_SID, TWILIO_AUTH, TO_WHATSAPP]):
+    if not all([SERPER_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         print("Error: Missing one or more required environment variables. Exiting.")
         return
 
-    client = Client(TWILIO_SID, TWILIO_AUTH)
-    
     print("\n--- Running job runner ---")
     messages_to_process = fetch_jobs()
     
@@ -122,11 +124,11 @@ def main():
     else:
         for i, item in enumerate(messages_to_process):
             print(f"Sending message {i+1}/{len(messages_to_process)}...")
-            if send_whatsapp(client, item["message"]):
+            if send_telegram_message(item["message"]):
                 save_sent_jobs(item["links_to_save"])
                 print(f"Saved {len(item['links_to_save'])} new links to history.")
             if i < len(messages_to_process) - 1:
-                time.sleep(3)
+                time.sleep(3) # Pause between messages
             
     print("--- Job runner finished ---")
 
