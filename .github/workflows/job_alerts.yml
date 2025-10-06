@@ -3,7 +3,8 @@ name: Daily Job Alerts
 on:
   workflow_dispatch: # Allows you to manually run the job from the Actions tab
   schedule:
-    - cron: '*/5 * * * *'   # Runs every 5 minutes
+    # Runs at 12:00 PM IST every day (which is 06:30 UTC)
+    - cron: '30 6 * * *'
 
 jobs:
   run-job-search:
@@ -23,10 +24,8 @@ jobs:
       - name: Run the job script
         env:
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
-          TWILIO_SID: ${{ secrets.TWILIO_SID }}
-          TWILIO_AUTH: ${{ secrets.TWILIO_AUTH }}
-          TO_WHATSAPP: ${{ secrets.TO_WHATSAPP }}
-          TWILIO_WHATSAPP: ${{ secrets.TWILIO_WHATSAPP }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python job_sch.py
 
       - name: Commit and push history file
